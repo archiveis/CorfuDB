@@ -8,6 +8,7 @@ import org.corfudb.common.metrics.micrometer.MeterRegistryProvider;
 import org.corfudb.common.util.ObservableValue;
 import org.corfudb.infrastructure.logreplication.LogReplicationConfig;
 import org.corfudb.infrastructure.logreplication.replication.send.IllegalSnapshotEntrySizeException;
+import org.corfudb.protocols.logprotocol.Utility;
 import org.corfudb.protocols.wireprotocol.logreplication.LogReplicationEntry;
 import org.corfudb.protocols.wireprotocol.logreplication.MessageType;
 import org.corfudb.protocols.logprotocol.OpaqueEntry;
@@ -128,7 +129,7 @@ public class StreamsSnapshotReader implements SnapshotReader {
                 if (lastEntry != null) {
                     List<SMREntry> smrEntries = lastEntry.getEntries().get(stream.uuid);
                     if (smrEntries != null) {
-                        int currentEntrySize = ReaderUtility.calculateSize(smrEntries);
+                        int currentEntrySize = Utility.calculateSize(smrEntries);
 
                         if (currentEntrySize > MAX_DATA_MSG_SIZE_SUPPORTED) {
                             log.error("The current entry size {} is bigger than the maxDataSizePerMsg {} supported",
@@ -166,7 +167,7 @@ public class StreamsSnapshotReader implements SnapshotReader {
         }
 
         log.trace("CurrentMsgSize {} lastEntrySize {}  maxDataSizePerMsg {}",
-                currentMsgSize, lastEntry == null ? 0 : ReaderUtility.calculateSize(lastEntry.getEntries().get(stream.uuid)), maxDataSizePerMsg);
+                currentMsgSize, lastEntry == null ? 0 : Utility.calculateSize(lastEntry.getEntries().get(stream.uuid)), maxDataSizePerMsg);
         return new SMREntryList(currentMsgSize, smrList);
     }
 

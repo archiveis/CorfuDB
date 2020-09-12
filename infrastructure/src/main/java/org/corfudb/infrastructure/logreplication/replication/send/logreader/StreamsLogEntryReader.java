@@ -10,6 +10,7 @@ import org.corfudb.common.metrics.micrometer.MeterRegistryProvider;
 import org.corfudb.infrastructure.logreplication.LogReplicationConfig;
 import org.corfudb.protocols.logprotocol.OpaqueEntry;
 import org.corfudb.protocols.logprotocol.SMREntry;
+import org.corfudb.protocols.logprotocol.Utility;
 import org.corfudb.protocols.wireprotocol.logreplication.LogReplicationEntry;
 import org.corfudb.protocols.wireprotocol.logreplication.MessageType;
 import org.corfudb.runtime.CorfuRuntime;
@@ -188,7 +189,7 @@ public class StreamsLogEntryReader implements LogEntryReader {
 
                         // If the currentEntry is too big to append the current message, will skip it and
                         // append it to the next message as the first entry.
-                        currentEntrySize = ReaderUtility.calculateOpaqueEntrySize(lastOpaqueEntry);
+                        currentEntrySize = Utility.calculateOpaqueEntrySize(lastOpaqueEntry);
 
                         if (!checkValidSize(currentMsgSize, currentEntrySize)) {
                             break;
