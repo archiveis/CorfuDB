@@ -1,6 +1,8 @@
 package org.corfudb.common.metrics.micrometer;
 
+import io.micrometer.core.instrument.Meter;
 import io.micrometer.core.instrument.MeterRegistry;
+import io.micrometer.core.instrument.Tags;
 import io.micrometer.core.instrument.logging.LoggingMeterRegistry;
 import io.micrometer.core.instrument.logging.LoggingRegistryConfig;
 import org.corfudb.common.metrics.micrometer.loggingsink.InfluxLineProtocolLoggingSink;
@@ -17,7 +19,7 @@ import java.util.function.Supplier;
  */
 public class MeterRegistryProvider {
     private static Optional<MeterRegistry> meterRegistry = Optional.empty();
-
+    private static Optional<String> endpoint = Optional.empty();
     private MeterRegistryProvider() {
 
     }
@@ -94,6 +96,26 @@ public class MeterRegistryProvider {
                 LoggingMeterRegistry registry = LoggingMeterRegistry.builder(config)
                         .loggingSink(sink).build();
                 registry.config().commonTags("endpoint", localEndpoint);
+                endpoint = Optional.of(localEndpoint);
+                return Optional.of(registry);
+            };
+
+            init(supplier);
+        }
+
+        /**
+         * Configure the meter registry of type LoggingMeterRegistry. All the metrics registered
+         * with this meter registry will be exported via provided logging sink with
+         * the provided loggingInterval frequency.
+         * @param sink A configured logging sink.
+         * @param loggingInterval A duration between log appends for every metric.
+         */
+        public static synchronized void init(Duration loggingInterval,
+                                             LoggingSink sink) {
+            Supplier<Optional<MeterRegistry>> supplier = () -> {
+                LoggingRegistryConfig config = new IntervalLoggingConfig(loggingInterval);
+                LoggingMeterRegistry registry = LoggingMeterRegistry.builder(config)
+                        .loggingSink(sink).build();
                 return Optional.of(registry);
             };
 
@@ -142,5 +164,24 @@ public class MeterRegistryProvider {
      */
     public static synchronized Optional<MeterRegistry> getInstance() {
         return meterRegistry;
+    }
+
+    /**
+     * Deregister the previously registered server meter.
+     *
+     * @param name Name of a meter.
+     * @param tags Tags of the meter.
+     * @param type Type of the meter.
+     */
+    public static synchronized void deregisterServerMeter(String name, Tags tags, Meter.Type type) {
+        meterRegistry.ifPresent(registry -> {
+            if (!endpoint.isPresent()) {
+                throw new IllegalStateException("The endpoint must be known to deregister a server meter.");
+            }
+            String localEndpoint = endpoint.get();
+            Meter.Id id = new Meter.Id(name, Tags.of("endpoint", localEndpoint).and(tags),
+                    null, null, type);
+            registry.remove(id);
+        });
     }
 }
