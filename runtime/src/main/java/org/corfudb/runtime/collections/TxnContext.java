@@ -51,7 +51,6 @@ public class TxnContext implements AutoCloseable {
     private static final byte WRITE_ONLY = 0x02;
     private static final byte READ_WRITE = 0x03;
     private byte txnType;
-
     /**
      * Creates a new TxnContext.
      *
