@@ -2,6 +2,7 @@ package org.corfudb.common.metrics.micrometer.loggingsink;
 
 import com.google.common.collect.ImmutableList;
 import lombok.AllArgsConstructor;
+import lombok.Getter;
 import lombok.NonNull;
 import org.corfudb.common.metrics.micrometer.protocoltransformer.LineTransformer;
 import org.corfudb.common.metrics.micrometer.protocoltransformer.influx.ByteDistSummaryInfluxLineTransformer;
@@ -20,6 +21,7 @@ public class InfluxLineProtocolLoggingSink implements LoggingSink {
 
     @NonNull
     private final Logger logger;
+    @Getter
     private final LineTransformer lineTransformer = new LineTransformer(
             ImmutableList.of(
                     new GaugeInfluxLineTransformer(),

@@ -51,6 +51,7 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nonnull;
 import java.time.Duration;
+import ch.qos.logback.classic.LoggerContext;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -284,7 +285,7 @@ public class CorfuRuntime {
             private Codec.Type codecType = Codec.Type.ZSTD;
             private MetricRegistry metricRegistry = null;
             private MicroMeterRuntimeConfig microMeterRuntimeConfig =
-                    new MicroMeterRuntimeConfig(false,
+                    new MicroMeterRuntimeConfig(true,
                     "CorfuMetrics", Duration.ofMinutes(1));
 
             public CorfuRuntimeParametersBuilder configureMicroMeterMetrics(
@@ -851,10 +852,10 @@ public class CorfuRuntime {
         CorfuRuntimeParameters.MicroMeterRuntimeConfig microMeterRuntimeConfig =
                 this.parameters.getMicroMeterRuntimeConfig();
         if (microMeterRuntimeConfig.metricsEnabled) {
-            org.slf4j.Logger logger = LoggerFactory.getLogger(microMeterRuntimeConfig.configuredLoggerName);
-
-            registry = Optional.of(MeterRegistryProvider.MeterRegistryInitializer.newInstance(logger,
-                    microMeterRuntimeConfig.loggingInterval, parameters.clientId));
+            LoggerContext loggerContext = (LoggerContext) LoggerFactory.getILoggerFactory();
+            registry = Optional.ofNullable(loggerContext.exists(microMeterRuntimeConfig.configuredLoggerName))
+                    .map(logger -> MeterRegistryProvider.MeterRegistryInitializer.newInstance(logger,
+                            microMeterRuntimeConfig.loggingInterval, parameters.clientId));
         }
         else {
             registry = Optional.empty();
