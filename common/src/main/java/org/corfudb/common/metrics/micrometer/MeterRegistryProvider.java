@@ -3,14 +3,16 @@ package org.corfudb.common.metrics.micrometer;
 import io.micrometer.core.instrument.MeterRegistry;
 import io.micrometer.core.instrument.logging.LoggingMeterRegistry;
 import io.micrometer.core.instrument.logging.LoggingRegistryConfig;
-import org.corfudb.common.metrics.micrometer.loggingsink.InfluxLineProtocolLoggingSink;
-import org.corfudb.common.metrics.micrometer.loggingsink.LoggingSink;
+import org.corfudb.common.metrics.micrometer.registries.LoggingMeterRegistryWithHistogramSupport;
 import org.slf4j.Logger;
 
 import java.time.Duration;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
+
+import static org.corfudb.common.metrics.micrometer.registries.LoggingMeterRegistryWithHistogramSupport.DataProtocol.INFLUX;
 
 /**
  * A configuration class for a meter (metrics) registry.
@@ -38,61 +40,25 @@ public class MeterRegistryProvider {
         public static MeterRegistry newInstance(Logger logger, Duration loggingInterval,
                                                 UUID clientId) {
             LoggingRegistryConfig config = new IntervalLoggingConfig(loggingInterval);
-            InfluxLineProtocolLoggingSink sink =
-                    new InfluxLineProtocolLoggingSink(logger);
-            LoggingMeterRegistry registry = LoggingMeterRegistry.builder(config)
-                    .loggingSink(sink).build();
+            LoggingMeterRegistryWithHistogramSupport registry =
+                    new LoggingMeterRegistryWithHistogramSupport(config, logger::debug, INFLUX);
             registry.config().commonTags("clientId", clientId.toString());
             return registry;
         }
 
         /**
          * Configure the meter registry of type LoggingMeterRegistry. All the metrics registered
-         * with this meter registry will be exported in the InfluxDB line protocol format
-         * (https://docs.influxdata.com/influxdb/v1.8/write_protocols/line_protocol_tutorial/)
-         * with  the provided loggingInterval frequency.
-         * @param logger A configured logger.
-         * @param loggingInterval A duration between log appends for every metric.
-         * @param localEndpoint A local endpoint to tag every metric with.
-         */
-        public static synchronized void init(Logger logger, Duration loggingInterval,
-                                                      String localEndpoint) {
-            InfluxLineProtocolLoggingSink influxLineProtocolLoggingSink =
-                    new InfluxLineProtocolLoggingSink(logger);
-            init(loggingInterval, localEndpoint, influxLineProtocolLoggingSink);
-        }
-
-        /**
-         * Configure the meter registry of type LoggingMeterRegistry. All the metrics registered
-         * with this meter registry will be exported in the InfluxDB line protocol format
-         * (https://docs.influxdata.com/influxdb/v1.8/write_protocols/line_protocol_tutorial/)
-         * with  the provided loggingInterval frequency.
-         * @param logger A configured logger.
-         * @param loggingInterval A duration between log appends for every metric.
-         */
-        public static synchronized void init(Logger logger, Duration loggingInterval) {
-            InfluxLineProtocolLoggingSink influxLineProtocolLoggingSink =
-                    new InfluxLineProtocolLoggingSink(logger);
-            init(loggingInterval, influxLineProtocolLoggingSink);
-        }
-
-
-
-        /**
-         * Configure the meter registry of type LoggingMeterRegistry. All the metrics registered
          * with this meter registry will be exported via provided logging sink with
          * the provided loggingInterval frequency.
-         * @param sink A configured logging sink.
+         * @param logger          An instance of the logger to print metrics.
          * @param loggingInterval A duration between log appends for every metric.
          * @param localEndpoint A local endpoint to tag every metric with.
          */
-        public static synchronized void init(Duration loggingInterval,
-                                                      String localEndpoint,
-                                                      LoggingSink sink) {
+        public static synchronized void init(Logger logger, Duration loggingInterval, String localEndpoint) {
             Supplier<Optional<MeterRegistry>> supplier = () -> {
                 LoggingRegistryConfig config = new IntervalLoggingConfig(loggingInterval);
-                LoggingMeterRegistry registry = LoggingMeterRegistry.builder(config)
-                        .loggingSink(sink).build();
+                LoggingMeterRegistryWithHistogramSupport registry =
+                        new LoggingMeterRegistryWithHistogramSupport(config, logger::debug, INFLUX);
                 registry.config().commonTags("endpoint", localEndpoint);
                 return Optional.of(registry);
             };
@@ -108,7 +74,7 @@ public class MeterRegistryProvider {
          * @param loggingInterval A duration between log appends for every metric.
          */
         public static synchronized void init(Duration loggingInterval,
-                                             LoggingSink sink) {
+                                             Consumer<String> sink) {
             Supplier<Optional<MeterRegistry>> supplier = () -> {
                 LoggingRegistryConfig config = new IntervalLoggingConfig(loggingInterval);
                 LoggingMeterRegistry registry = LoggingMeterRegistry.builder(config)
